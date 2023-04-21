@@ -1,0 +1,297 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="style.css">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" integrity="sha512-9usAa10IRO0HhonpyAIVpjrylPvoDwiPUiKdWk5t3PyolY1cOd4DSE0Ga+ri4AuTroPR5aQvXU9xC6qOPnzFeg==" crossorigin="anonymous" referrerpolicy="no-referrer" />
+    <title>To Do List</title>
+</head>
+<body>
+    <div class="container">
+        <div class="top-nav">
+            <div class="top-lft">
+                <img class="logo" src = "/images/logo.png"/>
+                <h4>ToDo</h4>
+            </div>
+            <div class="top-middle">
+                <input class="no-outline" placeholder="   Type something..." id="search-input">
+                <button id="search-btn">Search</button>
+            </div>
+            <div class="top-rgt">
+                <div id="image-container"></div>
+            </div>
+        </div>
+        <div class="main-container">
+            <div class="side-nav">
+                <div class="side-nav-top">
+                    <section>
+                        <input type="text" id="user-input" placeholder="Enter the name of list" >
+                        <button id="add-username-btn"  onclick="saveData()" >Enter</i></button>
+                    </section>
+                    <input type="file" id="image-upload" accept="image/*">
+                    <button onclick="uploadImage()">Upload</button>
+                    <button onclick="removeImage()">Remove</button>
+                    
+                </div>
+                <div class = "side-nav-btm">
+                    <section>
+                        <input type="text" id="name-input" placeholder="Add an item" >
+                        <button id="add-name-btn">Add <i class="fa-solid fa-plus"></i></button>
+                    </section>
+                  
+                    <section hidden id="update-row">
+                        <input type="text" id="update-name-input" placeholder="Update an item">
+                        <button id="update-row-btn">Update <i class="fa-sharp fa-solid fa-pen-to-square"></i></button>
+                    </section>
+                </div>
+            </div>
+            <div class="inbox">
+                <div class="list-name" id = "list-name"> KJ's List</div>
+                <table id="table">
+                    <thead>
+                        <th>ID</th>
+                        <th>Name</th>
+                        <th>Delete</th>
+                        <th>Edit</th>
+                        <th>Date Added</th>
+                    </thead>
+                    <tbody></tbody>
+                </table>
+            </div>
+            
+        </div>
+      
+    </div>
+    
+    <main>
+       
+
+        <br><br><br>
+        <!-- <div>
+           <input placeholder="search by name" id="search-input">
+           <button id="search-btn">Search</button>
+        </div> -->
+
+        <table id="table">
+            <thead>
+                <th>ID</th>
+                <th>Name</th>
+                <th>Date Added</th>
+                <th>Delete</th>
+                <th>Edit</th>
+            </thead>
+            <tbody></tbody>
+        </table>
+
+        
+    </main>
+    <script src="script.js"></script>
+
+    <% /* EJS Syntax starts here */ %>
+    <script type="text/javascript">
+       document.addEventListener('DOMContentLoaded', function () {
+    fetch('http://localhost:8000/get')
+    .then(response => response.json())
+    .then(data => loadHTMLTable(data['data']));
+    
+});
+
+document.querySelector('table tbody').addEventListener('click', function(event) {
+    if (event.target.className === "delete-row-btn") {
+        deleteRowById(event.target.dataset.id);
+    }
+    if (event.target.className === "edit-row-btn") {
+        handleEditRow(event.target.dataset.id);
+    }
+});
+
+const updateBtn = document.querySelector('#update-row-btn');
+const searchBtn = document.querySelector('#search-btn');
+
+searchBtn.onclick = function() {
+    const searchValue = document.querySelector('#search-input').value;
+
+    fetch('http://localhost:8000/search/' + searchValue)
+    .then(response => response.json())
+    .then(data => loadHTMLTable(data['data']));
+}
+
+function deleteRowById(id) {
+    fetch('http://localhost:8000/delete/' + id, {
+        method: 'DELETE'
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        }
+    });
+}
+
+function handleEditRow(id) {
+    const updateSection = document.querySelector('#update-row');
+    updateSection.hidden = false;
+    document.querySelector('#update-name-input').dataset.id = id;
+}
+
+updateBtn.onclick = function() {
+    const updateNameInput = document.querySelector('#update-name-input');
+
+
+    console.log(updateNameInput);
+
+    fetch('http://localhost:8000/update', {
+        method: 'PATCH',
+        headers: {
+            'Content-type' : 'application/json'
+        },
+        body: JSON.stringify({
+            id: updateNameInput.dataset.id,
+            name: updateNameInput.value
+        })
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            location.reload();
+        }
+    })
+}
+
+
+const addBtn = document.querySelector('#add-name-btn');
+
+addBtn.onclick = function () {
+    const nameInput = document.querySelector('#name-input');
+    const name = nameInput.value;
+    console.log(name);
+    nameInput.value = "";
+
+    fetch('http://localhost:8000/insert', {
+        headers: {
+            'Content-type': 'application/json'
+        },
+        method: 'POST',
+        body: JSON.stringify({ name : name})
+    })
+    .then(response => response.json())
+    .then(data => insertRowIntoTable(data['data']));
+}
+
+function insertRowIntoTable(data) {
+    console.log(data);
+    const table = document.querySelector('table tbody');
+    const isTableData = table.querySelector('.no-data');
+
+    let tableHtml = "<tr>";
+
+    for (var key in data) {
+        if (data.hasOwnProperty(key)) {
+            if (key === 'dateAdded') {
+                data[key] = new Date(data[key]).toLocaleString();
+            }
+            tableHtml += `<td>${data[key]}</td>`;
+        }
+    }
+
+    tableHtml += `<td><button class="delete-row-btn" data-id=${data.id}>Delete</td>`;
+    tableHtml += `<td><button class="edit-row-btn" data-id=${data.id}>Edit</td>`;
+
+    tableHtml += "</tr>";
+
+    if (isTableData) {
+        table.innerHTML = tableHtml;
+    } else {
+        const newRow = table.insertRow();
+        newRow.innerHTML = tableHtml;
+    }
+}
+
+function loadHTMLTable(data) {
+    const table = document.querySelector('table tbody');
+
+    if (data.length === 0) {
+        table.innerHTML = "<tr><td class='no-data' colspan='5'>No Data</td></tr>";
+        return;
+    }
+
+    let tableHtml = "";
+
+    data.forEach(function ({id, name, date_added}) {
+        tableHtml += "<tr>";
+        tableHtml += `<td class = "id"> <i class="fa-solid fa-check"></i></td>`;
+        tableHtml += `<td class = "item-name">${name}</td>`;
+        tableHtml += `<td class = "date">${new Date(date_added).toLocaleString()}</td>`;
+        tableHtml += `<td><button class="delete-row-btn" data-id=${id}>Delete <i class='fa-solid fa-trash'></i></td>`;
+        tableHtml += `<td><button class="edit-row-btn" data-id=${id}> Edit <i class='fa-solid fa-edit'></td>`;
+     
+        tableHtml += "</tr>";
+    });
+
+    table.innerHTML = tableHtml;
+}
+    </script>
+    <script>
+        var inputBox = document.getElementById("user-input");
+      
+        const storedData = document.getElementById("list-name");
+  
+        // Load stored data on page load
+        window.addEventListener("load", () => {
+          if (localStorage.getItem("data")) {
+            storedData.textContent = localStorage.getItem("data");
+          }
+        });
+  
+        // Save input data to local storage
+        function saveData() {
+          const data = inputBox.value.trim() + "'s List";
+          if (data !== "") {
+            localStorage.setItem("data", data);
+            storedData.textContent = data;
+            inputBox.value = "";
+          }
+        }
+  
+        // Clear stored data
+        function clearData() {
+          localStorage.removeItem("data");
+          storedData.textContent = "";
+        }
+      </script>
+      <script>
+        const imageUpload = document.getElementById("image-upload");
+        const imageContainer = document.getElementById("image-container");
+  
+        // Load stored image on page load
+        window.addEventListener("load", () => {
+          if (localStorage.getItem("image")) {
+            const imageData = localStorage.getItem("image");
+            const imageSrc = `data:image/png;base64,${imageData}`;
+            imageContainer.innerHTML = `<img src="${imageSrc}" alt="Uploaded Image">`;
+          }
+        });
+  
+        // Upload selected image and store in local storage
+        function uploadImage() {
+          const file = imageUpload.files[0];
+          if (file && file.type.startsWith("image/")) {
+            const reader = new FileReader();
+            reader.readAsDataURL(file);
+            reader.onload = () => {
+              const imageData = reader.result.split(",")[1];
+              localStorage.setItem("image", imageData);
+              const imageSrc = `data:image/png;base64,${imageData}`;
+              imageContainer.innerHTML = `<img class = "abc" src="${imageSrc}" alt="Uploaded Image">`;
+            };
+          }
+        }
+        function removeImage() {
+        localStorage.removeItem("image");
+        imageContainer.innerHTML = "";
+      }
+      </script>
+    <% /* EJS Syntax ends here */ %>
+</body>
+</html>
